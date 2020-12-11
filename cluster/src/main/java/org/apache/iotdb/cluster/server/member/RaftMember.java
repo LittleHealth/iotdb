@@ -78,6 +78,8 @@ import org.apache.iotdb.cluster.server.Timer;
 import org.apache.iotdb.cluster.server.Timer.Statistic;
 import org.apache.iotdb.cluster.server.handlers.caller.AppendNodeEntryHandler;
 import org.apache.iotdb.cluster.server.handlers.caller.GenericHandler;
+import org.apache.iotdb.cluster.server.heartbeat.PhiAccrualFailureDetector;
+import org.apache.iotdb.cluster.server.heartbeat.PhiConfidence;
 import org.apache.iotdb.cluster.utils.ClientUtils;
 import org.apache.iotdb.cluster.utils.IOUtils;
 import org.apache.iotdb.cluster.utils.PlanSerializer;
@@ -234,6 +236,8 @@ public abstract class RaftMember {
    * logs.
    */
   private LogDispatcher logDispatcher;
+
+  private PhiAccrualFailureDetector accrualFailureDetector = new PhiAccrualFailureDetector.Builder().build();
 
   protected RaftMember() {
   }
@@ -625,7 +629,19 @@ public abstract class RaftMember {
   }
 
   public void setLastHeartbeatReceivedTime(long lastHeartbeatReceivedTime) {
+    // Add one heartbeat or init heartbeat
+    if(lastHeartbeatReceivedTime <= 0){
+      // Reset phi detector
+      accrualFailureDetector = new PhiAccrualFailureDetector.Builder().build();
+    }
+    else {
+      accrualFailureDetector.heartbeat(lastHeartbeatReceivedTime);
+    }
     this.lastHeartbeatReceivedTime = lastHeartbeatReceivedTime;
+  }
+
+  public PhiConfidence getPhiConfidence(long timestampsMills){
+    return accrualFailureDetector.getPhiConfidence(timestampsMills);
   }
 
   public Node getLeader() {
@@ -1087,7 +1103,8 @@ public abstract class RaftMember {
           name, thatTerm, term.get(), thatLastLogIndex, logManager.getLastLogIndex(),
           thatLastLogTerm, logManager.getLastLogTerm());
       setCharacter(NodeCharacter.FOLLOWER);
-      lastHeartbeatReceivedTime = System.currentTimeMillis();
+      // lastHeartbeatReceivedTime = System.currentTimeMillis();
+      setLastHeartbeatReceivedTime(System.currentTimeMillis());
       setVoteFor(electionRequest.getElector());
       updateHardState(thatTerm, getVoteFor());
     } else {
@@ -1143,7 +1160,8 @@ public abstract class RaftMember {
         (header == null || header.equals(getHeader())) &&
         (leader.get() != null) && leader.get().equals(node)) {
       // leader is down, trigger a new election by resetting heartbeat
-      lastHeartbeatReceivedTime = -1;
+      // lastHeartbeatReceivedTime = -1;
+      setLastHeartbeatReceivedTime(-1);
       leader.set(null);
       waitLeader();
     }
@@ -1419,7 +1437,8 @@ public abstract class RaftMember {
         // only when the request is from a leader should we update lastHeartbeatReceivedTime,
         // otherwise the node may be stuck in FOLLOWER state by a stale node.
         setCharacter(NodeCharacter.FOLLOWER);
-        lastHeartbeatReceivedTime = System.currentTimeMillis();
+        // lastHeartbeatReceivedTime = System.currentTimeMillis();
+        setLastHeartbeatReceivedTime(System.currentTimeMillis());
       }
     }
   }
@@ -1803,7 +1822,8 @@ public abstract class RaftMember {
         if (leaderTerm > localTerm) {
           stepDown(leaderTerm, true);
         } else {
-          lastHeartbeatReceivedTime = System.currentTimeMillis();
+          // lastHeartbeatReceivedTime = System.currentTimeMillis();
+          setLastHeartbeatReceivedTime(System.currentTimeMillis());
         }
         setLeader(leader);
         if (character != NodeCharacter.FOLLOWER) {

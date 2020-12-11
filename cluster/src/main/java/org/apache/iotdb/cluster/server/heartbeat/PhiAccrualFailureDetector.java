@@ -115,6 +115,18 @@ public class PhiAccrualFailureDetector {
         return phi(System.currentTimeMillis()) < threshold;
     }
 
+    public PhiConfidence getPhiConfidence(long timestampMills){
+        double phi = phi(timestampMills);
+        // lower phi -> higher confidence
+        if (phi < threshold){
+            return PhiConfidence.HIGH_PHI_CONFIDENCE;
+        }
+        else if(phi < 2 * threshold){
+            return PhiConfidence.MIDDLE_PHI_CONFIDENCE;
+        }
+        return PhiConfidence.LOW_PHI_CONFIDENCE;
+    }
+
     public synchronized void heartbeat(long timestampMillis)
     {
         Long lastTimestampMillis = this.lastTimestampMillis.getAndSet(timestampMillis);
@@ -137,7 +149,7 @@ public class PhiAccrualFailureDetector {
     public static class Builder
     {
         private double threshold = 16.0;
-        private int maxSampleSize = 200;
+        private int maxSampleSize = 50;
         private double minStdDeviationMillis = 500;
         private long acceptableHeartbeatPauseMillis = 0;
         private long firstHeartbeatEstimateMillis = 500;

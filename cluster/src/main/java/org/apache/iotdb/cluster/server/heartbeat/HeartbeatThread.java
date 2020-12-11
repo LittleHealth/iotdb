@@ -86,18 +86,26 @@ public class HeartbeatThread implements Runnable {
             break;
           case FOLLOWER:
             // check if heartbeat times out
-            long heartBeatInterval = System.currentTimeMillis() - localMember
-                .getLastHeartbeatReceivedTime();
-            if (heartBeatInterval >= RaftServer.getConnectionTimeoutInMS()) {
+            // long heartBeatInterval = System.currentTimeMillis() - localMember.getLastHeartbeatReceivedTime();
+            PhiConfidence confidence = localMember.getPhiConfidence(System.currentTimeMillis());
+            // if (heartBeatInterval >= RaftServer.getConnectionTimeoutInMS()) {
+            if(confidence == PhiConfidence.LOW_PHI_CONFIDENCE){
               // the leader is considered dead, an election will be started in the next loop
               logger.info("{}: The leader {} timed out", memberName, localMember.getLeader());
+              logger.error("{}: The leader {} timed out", memberName, localMember.getLeader());
               localMember.setCharacter(NodeCharacter.ELECTOR);
               localMember.setLeader(null);
-            } else {
+            }
+            // TODO Distinguish between High_Confidence and Middle_Confidence
+            else if(confidence == PhiConfidence.HIGH_PHI_CONFIDENCE || confidence == PhiConfidence.MIDDLE_PHI_CONFIDENCE){
               logger.debug("{}: Heartbeat from leader {} is still valid", memberName,
                   localMember.getLeader());
+              logger.error("{}: Heartbeat from leader {} is still valid", memberName,
+                      localMember.getLeader());
               Thread.sleep(RaftServer.getConnectionTimeoutInMS());
             }
+
+
             hasHadLeader = true;
             break;
           case ELECTOR:
@@ -213,6 +221,7 @@ public class HeartbeatThread implements Runnable {
       localMember.getSerialToParallelPool().submit(() -> {
         try {
           logger.debug("{}: Sending heartbeat to {}", memberName, node);
+          logger.error("{}: Sending heartbeat to {}", memberName, node);
           HeartBeatResponse heartBeatResponse = client.sendHeartbeat(req);
           heartbeatHandler.onComplete(heartBeatResponse);
         } catch (TTransportException e) {
@@ -221,6 +230,7 @@ public class HeartbeatThread implements Runnable {
           client.getInputProtocol().getTransport().close();
         } catch (Exception e) {
           logger.warn("{}: Cannot send heart beat to node {}", memberName, node, e);
+          logger.error("{}: Cannot send heart beat to node {}", memberName, node, e);
         } finally {
           ClientUtils.putBackSyncHeartbeatClient(client);
         }
