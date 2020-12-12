@@ -205,7 +205,16 @@ public class HeartbeatThreadTest {
     int prevTimeOut = RaftServer.getConnectionTimeoutInMS();
     RaftServer.setConnectionTimeoutInMS(500);
     member.setCharacter(NodeCharacter.FOLLOWER);
-    member.setLastHeartbeatReceivedTime(System.currentTimeMillis());
+    for(int i = 0; i < 20; i++) {
+      Thread.sleep(1000);
+      member.setLastHeartbeatReceivedTime(System.currentTimeMillis());
+      Thread.sleep(1000);
+      System.out.print("After 1000ms, PhiConfidence:" + member.getPhiConfidence().toString());
+      Thread.sleep(2000);
+      System.out.print("After 3000ms, PhiConfidence:" + member.getPhiConfidence().toString());
+      Thread.sleep(2000);
+      System.out.print("After 5000ms, PhiConfidence:" + member.getPhiConfidence().toString());
+    }
     respondToElection = false;
     try {
       testThread.start();

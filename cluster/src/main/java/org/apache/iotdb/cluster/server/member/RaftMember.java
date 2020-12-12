@@ -644,6 +644,10 @@ public abstract class RaftMember {
     return accrualFailureDetector.getPhiConfidence(timestampsMills);
   }
 
+  public PhiConfidence getPhiConfidence(){
+    return getPhiConfidence(System.currentTimeMillis());
+  }
+
   public Node getLeader() {
     return leader.get();
   }

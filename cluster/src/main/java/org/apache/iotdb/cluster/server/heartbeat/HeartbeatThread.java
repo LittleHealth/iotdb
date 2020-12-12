@@ -19,7 +19,9 @@
 
 package org.apache.iotdb.cluster.server.heartbeat;
 
+import java.text.SimpleDateFormat;
 import java.util.Collection;
+import java.util.Date;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,26 +88,27 @@ public class HeartbeatThread implements Runnable {
             break;
           case FOLLOWER:
             // check if heartbeat times out
-            // long heartBeatInterval = System.currentTimeMillis() - localMember.getLastHeartbeatReceivedTime();
+            long heartBeatInterval = System.currentTimeMillis() - localMember
+                    .getLastHeartbeatReceivedTime();
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss,SSS");
+            Date date = new Date();
+            date.setTime(localMember.getLastHeartbeatReceivedTime());
+            logger.error("INFO: leader:{}, lastHeartBeat:{}, heartBeatInterval:{}", localMember.getLeader(),simpleDateFormat.format(date), heartBeatInterval);
             PhiConfidence confidence = localMember.getPhiConfidence(System.currentTimeMillis());
-            // if (heartBeatInterval >= RaftServer.getConnectionTimeoutInMS()) {
             if(confidence == PhiConfidence.LOW_PHI_CONFIDENCE){
+//           if (heartBeatInterval >= RaftServer.getConnectionTimeoutInMS()) {
               // the leader is considered dead, an election will be started in the next loop
+              /* 节点失联info：leader，last heartbeat，heartbeatInterval*/
+              logger.error("LEADER DEAD: leader:{}, last heartbeat:{}, heartBeatInterval:{}", localMember.getLeader(), simpleDateFormat.format(date), heartBeatInterval);
               logger.info("{}: The leader {} timed out", memberName, localMember.getLeader());
-              logger.error("{}: The leader {} timed out", memberName, localMember.getLeader());
               localMember.setCharacter(NodeCharacter.ELECTOR);
               localMember.setLeader(null);
-            }
-            // TODO Distinguish between High_Confidence and Middle_Confidence
-            else if(confidence == PhiConfidence.HIGH_PHI_CONFIDENCE || confidence == PhiConfidence.MIDDLE_PHI_CONFIDENCE){
+            } else {
+              // TODO Distinguish between High_Confidence and Middle_Confidence
               logger.debug("{}: Heartbeat from leader {} is still valid", memberName,
-                  localMember.getLeader());
-              logger.error("{}: Heartbeat from leader {} is still valid", memberName,
                       localMember.getLeader());
               Thread.sleep(RaftServer.getConnectionTimeoutInMS());
             }
-
-
             hasHadLeader = true;
             break;
           case ELECTOR:
