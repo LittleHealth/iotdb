@@ -61,6 +61,13 @@ public abstract class RaftServer implements RaftService.AsyncIface, RaftService.
   private static int writeOperationTimeoutMS =
       ClusterDescriptor.getInstance().getConfig().getWriteOperationTimeoutMS();
   private static int syncLeaderMaxWaitMs = 20 * 1000;
+  private static long[] heartBeatIntervalArray = {
+          1000, 1773, 1671, 1000, 2229, 1250, 2688, 2130, 2034, 1000, 1048, 2185, 1343, 1182, 1016, 2921, 1377, 1335, 1000, 2639, 1132, 1683, 2263, 1000, 1170, 1000, 1000, 1812, 1652, 1000, 1000, 1776, 1703, 1000, 1507, 1000, 1000, 1073, 1943, 1207, 2487, 1991, 1533, 1000, 1000, 1230, 1213, 1000, 1478, 1000, 1923, 1055, 1783, 1000, 1326, 1901, 1954, 1000, 1000, 2621, 1875, 1000, 1000, 1000, 1224, 1000, 1666, 1778, 1640, 1516, 1525, 1036, 1204, 2622, 2173, 1994, 1854, 1091, 1118, 1000, 2752, 1108, 1169, 1706, 1260, 2811, 1500, 1762, 2100, 1832, 2348, 1947, 1000, 1104, 1872, 1785, 1480, 1287, 1940,
+          40000,
+          2081, 2380, 1000, 1714, 1561, 1659, 1290, 1490, 2356, 1000, 1878, 2719, 1000, 2155, 1682, 1000, 1146, 1343, 1379, 1271, 1871, 1000, 1000, 1715, 1000, 2454, 1667, 1394, 1170, 1627, 1282, 1485, 1000, 2232, 1410, 1312, 2145, 2121, 1271, 2191, 1000, 1185, 1485, 1000, 2142, 1113, 2142, 1184, 1650, 1000, 1339, 1958, 1530, 1682, 1000, 2651, 1409, 1929, 1290, 1000, 1183, 1762, 1488, 1183, 1000, 1851, 1561, 2518, 1072, 1086, 1000, 1211, 1000, 1622, 2257, 1767, 1000, 1266, 2619, 1000, 1000, 2101, 1000, 2431, 2263, 1454, 2297, 1000, 1742, 2105, 1863, 2686, 1603, 1837, 1000, 1000, 1964, 1000, 2958,
+          40000,
+  };
+  private static int index = 0;
   private static long heartBeatIntervalMs = 1000L;
 
   ClusterConfig config = ClusterDescriptor.getInstance().getConfig();
@@ -111,10 +118,15 @@ public abstract class RaftServer implements RaftService.AsyncIface, RaftService.
   public static void setSyncLeaderMaxWaitMs(int syncLeaderMaxWaitMs) {
     RaftServer.syncLeaderMaxWaitMs = syncLeaderMaxWaitMs;
   }
-
   public static long getHeartBeatIntervalMs() {
+    heartBeatIntervalMs = heartBeatIntervalArray[index];
+    index = (index+1)%200;
     return heartBeatIntervalMs;
   }
+
+/*  public static long getHeartBeatIntervalMs() {
+    return heartBeatIntervalMs;
+  }*/
 
   public static void setHeartBeatIntervalMs(long heartBeatIntervalMs) {
     RaftServer.heartBeatIntervalMs = heartBeatIntervalMs;

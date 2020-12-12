@@ -130,10 +130,12 @@ public class HeartbeatThread implements Runnable {
   }
 
   protected void onElectionsStart() {
+    logger.error("{}: Start elections", memberName);
     logger.info("{}: Start elections", memberName);
   }
 
   protected void onElectionsEnd() {
+    logger.error("{}: End elections, leader is {}", memberName, localMember.getLeader());
     logger.info("{}: End elections", memberName);
   }
 
